@@ -5,22 +5,24 @@ constexpr uint32_t threads_per_block = 64;
 constexpr uint32_t blocks_per_grid = 4096;
 constexpr uint64_t max_N = 9;
 constexpr size_t num_dir = 4;
+using stack_word_t = uint16_t;
 
-__device__ uint32_t get_dir(uint32_t word, uint32_t index) {
+__device__ stack_word_t get_dir(stack_word_t word, uint32_t index) {
   return (word >> (index * 2)) & 0b11;
 }
 
-__device__ void set_dir(uint32_t& word, uint32_t index, uint32_t dir) {
+__device__ void set_dir(stack_word_t& word, uint32_t index, stack_word_t dir) {
   word &= ~(0b11 << (index * 2));
   word |= dir << (index * 2);
 }
 
 __global__ void oneesan_kernel(const uint64_t N, const uint16_t* const init_bits, const int32_t* const init_row,
     const int32_t* const init_col, uint64_t* const result, const uint64_t length) {
-  constexpr uint32_t stack_size = 44;
-  constexpr uint32_t stack_index_shift = 4;
+  constexpr uint32_t stack_size = 48;
+  constexpr uint32_t stack_index_shift = 3;
   constexpr uint32_t stack_index_mask = (1 << stack_index_shift) - 1;
-  uint32_t dir_stack[stack_size >> stack_index_shift];
+  constexpr size_t stack_word_size = (stack_size + stack_index_mask) >> stack_index_shift;
+  stack_word_t dir_stack[stack_word_size];
   uint16_t bits[max_N];
   const uint64_t offset = threadIdx.x + blockIdx.x * blockDim.x;
   const uint64_t stride = gridDim.x * blockDim.x;
@@ -35,7 +37,6 @@ __global__ void oneesan_kernel(const uint64_t N, const uint16_t* const init_bits
   for (uint64_t i = 0; i <= N; ++i) {
     bits[i] = init_bits[index * (N + 1) + i];
   }
-  dir_stack[0] = 0;
   bool first = true;
   uint64_t count = 0;
   int32_t dr[num_dir] = {0, 1, 0, -1};
@@ -59,7 +60,6 @@ __global__ void oneesan_kernel(const uint64_t N, const uint16_t* const init_bits
           continue;
         }
         bits[next_row] |= 1 << next_col;
-        //pos_stack[stack_index] = (row << 4) | col;
         ++stack_index;
         row = next_row;
         col = next_col;
@@ -76,9 +76,8 @@ __global__ void oneesan_kernel(const uint64_t N, const uint16_t* const init_bits
       row = init_row[index];
       col = init_col[index];
       for (uint64_t i = 0; i <= N; ++i) {
-        bits[i] = init_bits[index * (N+1) + i];
+        bits[i] = init_bits[index * (N + 1) + i];
       }
-      dir_stack[0] = 0;
       first = true;
     } else {
       bits[row] ^= 1 << col;
