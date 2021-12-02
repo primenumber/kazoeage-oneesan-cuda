@@ -136,7 +136,6 @@ int main(int argc, char** argv) {
   current_bits[0] |= 1;
   std::vector<int32_t> rows, cols;
   uint64_t result = expand_recursive(bits, current_bits, rows, cols, 0, 0, N, expand);
-  std::cerr << bits.size() << " " << rows.size() << std::endl;
   size_t children_count = rows.size();
   const size_t threads_per_grid = blocks_per_grid * threads_per_block;
   std::vector<uint64_t> results(threads_per_grid);
@@ -156,5 +155,5 @@ int main(int argc, char** argv) {
   for (auto&& num : results) {
     result += num;
   }
-  std::cout << result << std::endl;
+  std::cout << "oneesan(" << N << ") = " << result << std::endl;
 }
