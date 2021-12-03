@@ -5,6 +5,7 @@ constexpr uint32_t threads_per_block = 64;
 constexpr uint32_t blocks_per_grid = 4096;
 constexpr uint64_t max_N = 9;
 constexpr size_t num_dir = 4;
+
 using stack_word_t = uint16_t;
 
 __device__ stack_word_t get_dir(stack_word_t word, uint32_t index) {
@@ -39,8 +40,8 @@ __global__ void oneesan_kernel(const uint64_t N, const uint16_t* const init_bits
   }
   bool first = true;
   uint64_t count = 0;
-  int32_t dr[num_dir] = {0, 1, 0, -1};
-  int32_t dc[num_dir] = {1, 0, -1, 0};
+  constexpr int32_t dr[num_dir] = {0, 1, 0, -1};
+  constexpr int32_t dc[num_dir] = {1, 0, -1, 0};
   while (true) {
     if (row == N && col == N) {
       ++count;
